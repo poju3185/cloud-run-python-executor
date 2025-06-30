@@ -1,25 +1,25 @@
-# Dockerfile.cloudrun - 專為 Cloud Run 部署優化
+# Dockerfile.cloudrun - Optimized for Cloud Run deployment
 
-# 使用輕量的 Python 映像檔
+# Use lightweight Python image
 FROM python:3.11-slim-bullseye
 
-# 設定工作目錄
+# Set working directory
 WORKDIR /app
 
-# 複製依賴套件列表並安裝
+# Copy dependency list and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 複製我們的應用程式程式碼
-# 注意：我們將會修改 app/main.py 來移除 nsjail
+# Copy our application code
+# Note: We will modify app/main.py to remove nsjail
 COPY ./app /app/
 
-# 設定環境變數，讓 Gunicorn 知道要跑哪個 app
+# Set environment variables for Gunicorn to know which app to run
 ENV APP_MODULE="main:app"
 ENV PORT=8080
 
-# 開放 8080 port
+# Expose port 8080
 EXPOSE 8080
 
-# 使用 Gunicorn 啟動應用
+# Start application with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "main:app"] 

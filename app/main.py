@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from contextlib import redirect_stdout
 import io
 
-# 設定日誌
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
@@ -14,9 +14,9 @@ app = Flask(__name__)
 @app.route('/execute', methods=['POST'])
 def execute_script():
     """
-    接收 Python 腳本，在 Cloud Run 的沙箱中直接執行，並返回結果。
+    Execute Python script directly in Cloud Run sandbox and return results.
     """
-    # 1. 基本輸入驗證
+    # 1. Basic input validation
     try:
         req_data = request.get_json()
         if not req_data or 'script' not in req_data:
@@ -34,36 +34,36 @@ def execute_script():
         "error": None
     }
     
-    # 2. 直接在記憶體中執行腳本
+    # 2. Execute script directly in memory
     stdout_capture = io.StringIO()
     try:
-        # 建立一個臨時的 module scope
+        # Create a temporary module scope
         script_scope = {}
         with redirect_stdout(stdout_capture):
-            # 執行使用者提供的腳本字串
+            # Execute user-provided script string
             exec(user_script_str, script_scope)
         
-        # 從 scope 中取得 main 函式
+        # Get main function from scope
         main_func = script_scope.get('main')
         if not callable(main_func):
              raise NameError("main() function not defined or not callable in the script")
 
-        # 執行 main 函式並獲取結果
+        # Execute main function and get result
         result = main_func()
         
-        # 驗證回傳值是否為 JSON 可序列化
+        # Verify return value is JSON serializable
         json.dumps(result)
         output_data['result'] = result
 
     except Exception as e:
-        # 捕獲執行過程中的任何錯誤
+        # Catch any errors during execution
         output_data['error'] = f"{type(e).__name__}: {e}"
 
     finally:
-        # 收集 stdout
+        # Collect stdout
         output_data['stdout'] = stdout_capture.getvalue()
 
-    # 3. 返回結果
+    # 3. Return results
     if output_data.get("error"):
         return jsonify({"error": output_data["error"], "stdout": output_data["stdout"]}), 400
 
@@ -73,6 +73,6 @@ def execute_script():
     }), 200
 
 if __name__ == '__main__':
-    # 在本地開發時，使用 Flask 內建的 server
-    # 在 Cloud Run 上，會由 Gunicorn 啟動
+    # For local development, use Flask's built-in server
+    # On Cloud Run, it will be started by Gunicorn
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
