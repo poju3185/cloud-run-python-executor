@@ -9,7 +9,7 @@ on:
       - "main"
 
 env:
-  PROJECT_ID: <YOUR_GCP_PROJECT_ID> # 填寫您的 GCP 專案 ID
+  PROJECT_ID: gifted-antonym-464515-k4 # 填寫您的 GCP 專案 ID
   GAR_LOCATION: us-central1 # Artifact Registry 的位置
   SERVICE_NAME: py-executor-service # Cloud Run 服務的名稱
   REGION: us-central1 # Cloud Run 服務的區域
@@ -32,8 +32,8 @@ jobs:
         id: auth
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: '<YOUR_WORKLOAD_IDENTITY_PROVIDER_NAME>' # 填寫上面第 5 步得到的完整名稱
-          service_account: '<YOUR_SERVICE_ACCOUNT_EMAIL>' # 填寫上面第 1 步中定義的 SA_EMAIL
+          workload_identity_provider: 'projects/57650711197/locations/global/workloadIdentityPools/github-pool/providers/github-provider' # 填寫上面第 5 步得到的完整名稱
+          service_account: 'cloudrun-deployer@gifted-antonym-464515-k4.iam.gserviceaccount.com' # 填寫上面第 1 步中定義的 SA_EMAIL
 
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
