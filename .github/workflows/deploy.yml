@@ -1,0 +1,58 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to Cloud Run
+
+# 當有程式碼推送到 main 分支時觸發此工作流
+on:
+  push:
+    branches:
+      - "main"
+
+env:
+  PROJECT_ID: <YOUR_GCP_PROJECT_ID> # 填寫您的 GCP 專案 ID
+  GAR_LOCATION: us-central1 # Artifact Registry 的位置
+  SERVICE_NAME: py-executor-service # Cloud Run 服務的名稱
+  REGION: us-central1 # Cloud Run 服務的區域
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    # 授予工作流生成 OIDC token 的權限
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: '<YOUR_WORKLOAD_IDENTITY_PROVIDER_NAME>' # 填寫上面第 5 步得到的完整名稱
+          service_account: '<YOUR_SERVICE_ACCOUNT_EMAIL>' # 填寫上面第 1 步中定義的 SA_EMAIL
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+      - name: Build and Push Docker Image
+        run: |-
+          IMAGE_URL=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/py-executor-repo/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker build -t $IMAGE_URL .
+          docker push $IMAGE_URL
+
+      - name: Deploy to Cloud Run
+        run: |-
+          IMAGE_URL=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/py-executor-repo/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image $IMAGE_URL \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --quiet 
